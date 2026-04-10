@@ -6,3 +6,4 @@ conditions:
   - pasta_dishes_size: 1
   - rice_dishes_size: 1
   - potato_dishes_size: 1
+  - maximum_repeated_legume: 1

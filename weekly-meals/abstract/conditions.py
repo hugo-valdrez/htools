@@ -11,6 +11,7 @@ class ConditionsManager:
             minimum_PastaDishes(pasta_dishes_size=kwargs.get("pasta_dishes_size")),
             minimum_RiceDishes(rice_dishes_size=kwargs.get("rice_dishes_size")),
             minimum_PotatoDishes(potato_dishes_size=kwargs.get("potato_dishes_size")),
+            maximum_LegumeRepeated(maximum_repeated_legume=kwargs.get("maximum_repeated_legume"))
         ]
 
     def check_conditions(self, meal_selection):
@@ -92,3 +93,21 @@ class mandatory_LegumeDishes(BaseCondition):
             sum(1 for dish in meal_selection if dish.get("legume"))
             == self.legume_dishes_size
         )
+
+
+class maximum_LegumeRepeated(BaseCondition):
+    def __init__(self, maximum_repeated_legume: int = 1):
+        self.maximum_repeated_legume = maximum_repeated_legume
+
+    def satisfies_condition(self, meal_selection):
+        legume_counter = {}
+        for dish in meal_selection:
+            legume = dish.get("legume")
+            
+            if legume:
+                legume_counter[legume] = legume_counter.get(legume, 0) + 1
+                
+                if legume_counter[legume] > self.maximum_repeated_legume:
+                    return False
+                    
+        return True
