@@ -3,6 +3,7 @@ from pathlib import Path
 from utils.readers.yaml_reader import YAMLReader
 from utils.readers.base_reader import BaseReader
 
+
 class ReaderFactory:
     _readers = {
         ".yaml": YAMLReader,
@@ -18,6 +19,6 @@ class ReaderFactory:
                 f"Unsupported file extension: {extension}.\n"
                 f"Supported file extensions: {', '.join(cls._readers.keys())}"
             )
-        
+
         reader_class = cls._readers[extension]
         return reader_class(file_path)

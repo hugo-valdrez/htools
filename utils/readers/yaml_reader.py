@@ -4,6 +4,7 @@ from typing import Any
 
 from utils.readers.base_reader import BaseReader
 
+
 class YAMLReader(BaseReader):
     def __init__(self, file_path: Path):
         super().__init__(file_path)

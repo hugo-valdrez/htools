@@ -10,7 +10,7 @@ class BaseReader(ABC):
             raise FileNotFoundError(f"File not found: {self.file_path}")
         if not self.file_path.is_file():
             raise ValueError(f"Path is not a file: {self.file_path}")
-        
+
     @abstractmethod
     def read(self):
         pass

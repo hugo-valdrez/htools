@@ -1,0 +1,8 @@
+conditions:
+  - meal_plan_size: 7
+  - tofu_dishes_size: 2
+  - fish_dishes_size: 1
+  - legume_dishes_size: 3
+  - pasta_dishes_size: 1
+  - rice_dishes_size: 1
+  - potato_dishes_size: 1
