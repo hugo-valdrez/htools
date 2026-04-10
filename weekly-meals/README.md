@@ -51,14 +51,14 @@ For each dish $i \in D$, we define a binary decision variable $x_i$:
 - $x_i = 0$ otherwise.
     
 ### The Parameters
-Each dish $i$ has attributes based on your 4-tuple $(H, P, L, ID)$:
+Each dish $i$ has attributes based on our 4-tuple $(H, P, L, ID)$:
 - $H_{i, \text{type}}$: The carbohydrate type (e.g., $1$ for Pasta, $2$ for Rice).
 - $P_{i, \text{type}}$: The protein type (e.g., $1$ for Meat, $2$ for Tofu, $3$ for Fish).
 - $L_i$: A binary value ($1$ if it has legumes, $0$ if not).
     
 
 ### The Constraints
-Based on your rules, we can write the following equations:
+Based on our rules, we can write the following equations:
 
 1. **Total Count:** $\sum_{i \in D} x_i = 7$
 2. **Min Pasta:** $\sum_{i \in D, H_i=1} x_i \ge 1$
