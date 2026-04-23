@@ -1,156 +1,236 @@
 dishes:
   - name: "Grão de bico com espinafres e ovo escalfado"
-    protein: "Egg"
-    carb: "Other"
-    legume: "Grao de bico"
+    attrs:
+      protein: "Egg"
+      carb: "Other"
+      legume: "Grao de bico"
   - name: "Caril de grão de bico"
-    protein: "Other"
-    carb: "Rice"
-    legume: "Grao de bico"
+    attrs:
+      protein: "Other"
+      carb: "Rice"
+      legume: "Grao de bico"
   - name: "Salada de grão de bico e batata doce"
-    protein: "Other"
-    carb: "Potato"
-    legume: "Grao de bico"
+    attrs:
+      protein: "Other"
+      carb: "Potato"
+      legume: "Grao de bico"
   - name: "Salada de feijão frade"
-    protein: "Egg"
-    carb: "Pasta"
-    legume: "Feijao frade"
+    attrs:
+      protein: "Egg"
+      carb: "Pasta"
+      legume: "Feijao frade"
   - name: "Burritos de feijão"
-    protein: "Other"
-    carb: "Bread"
-    legume: "Yes"
+    attrs:
+      protein: "Other"
+      carb: "Bread"
+      legume: "Feijao"
   - name: "Burritos de Soja"
-    protein: "Soy"
-    carb: "Bread"
+    attrs:
+      protein: "Soy"
+      carb: "Bread"
+      legume: null
   - name: "Massa de lentilhas e vegetais"
-    protein: "Other"
-    carb: "Pasta"
-    legume: "Lentilhas"
+    attrs:
+      protein: "Other"
+      carb: "Pasta"
+      legume: "Lentilhas"
   - name: "Lentilhada com naan"
-    protein: "Other"
-    carb: "Bread"
-    legume: "Lentilhas"
+    attrs:
+      protein: "Other"
+      carb: "Bread"
+      legume: "Lentilhas"
   - name: "Empadão de lentilhas"
-    protein: "Other"
-    carb: "Rice"
-    legume: "Lentilhas"
+    attrs:
+      protein: "Other"
+      carb: "Rice"
+      legume: "Lentilhas"
   - name: "Estufado de lentilhas e batata-doce"
-    protein: "Other"
-    carb: "Potato"
-    legume: "Lentilhas"
+    attrs:
+      protein: "Other"
+      carb: "Potato"
+      legume: "Lentilhas"
   - name: "Bolonhesa de soja"
-    protein: "Soy"
-    carb: "Pasta"
+    attrs:
+      protein: "Soy"
+      carb: "Pasta"
+      legume: null
   - name: "Soja à alentejana com batata air fryer"
-    protein: "Soy"
-    carb: "Potato"
+    attrs:
+      protein: "Soy"
+      carb: "Potato"
+      legume: null
   - name: "Chili de feijão com soja"
-    protein: "Soy"
-    carb: "Rice"
-    legume: "Feijao manteiga"
+    attrs:
+      protein: "Soy"
+      carb: "Rice"
+      legume: "Feijao manteiga"
   - name: "Almôndegas de soja com molho de tomate"
-    protein: "Soy"
-    carb: "Pasta"
+    attrs:
+      protein: "Soy"
+      carb: "Pasta"
+      legume: null
   - name: "Feijão preto com quinoa e abobora"
-    protein: "Other"
-    carb: "Quinoa"
-    legume: "Feijao preto"
+    attrs:
+      protein: "Other"
+      carb: "Quinoa"
+      legume: "Feijao preto"
   - name: "Lasanha de soja e espinafres"
-    protein: "Soy"
-    carb: "Pasta"
+    attrs:
+      protein: "Soy"
+      carb: "Pasta"
+      legume: null
   - name: "Bolenhesa de soja"
-    protein: "Soy"
-    carb: "Pasta"
+    attrs:
+      protein: "Soy"
+      carb: "Pasta"
+      legume: null
   - name: "Empadao de soja"
-    protein: "Soy"
-    carb: "Rice"
+    attrs:
+      protein: "Soy"
+      carb: "Rice"
+      legume: null
   - name: "Pescada estufada com legumes e batatas"
-    protein: "Fish"
-    carb: "Potato"
+    attrs:
+      protein: "Fish"
+      carb: "Potato"
+      legume: null
   - name: "Massa com atum"
-    protein: "Fish"
-    carb: "Pasta"
+    attrs:
+      protein: "Fish"
+      carb: "Pasta"
+      legume: null
   - name: "Empadão de atum"
-    protein: "Fish"
-    carb: "Rice"
+    attrs:
+      protein: "Fish"
+      carb: "Rice"
+      legume: null
   - name: "Beringela recheada com atum"
-    protein: "Fish"
-    carb: "Other"
+    attrs:
+      protein: "Fish"
+      carb: "Other"
+      legume: null
   - name: "Filetes de pescada com arroz de feijão"
-    protein: "Fish"
-    carb: "Rice"
-    legume: "Feijao vermelho"
+    attrs:
+      protein: "Fish"
+      carb: "Rice"
+      legume: "Feijao vermelho"
   - name: "Salmão grelhado"
-    protein: "Fish"
-    carb: "Rice"
+    attrs:
+      protein: "Fish"
+      carb: "Rice"
+      legume: null
   - name: "Arroz de pota"
-    protein: "Fish"
-    carb: "Rice"
+    attrs:
+      protein: "Fish"
+      carb: "Rice"
+      legume: null
   - name: "Salada russa com atum"
-    protein: "Fish"
-    carb: "Potato"
+    attrs:
+      protein: "Fish"
+      carb: "Potato"
+      legume: null
   - name: "Pataniscas de pescada c/ arroz de feijao"
-    protein: "Fish"
-    carb: "Rice"
-    legume: "Feijao vermelho"
+    attrs:
+      protein: "Fish"
+      carb: "Rice"
+      legume: "Feijao vermelho"
   - name: "Salmao com molho de tomate e natas"
-    protein: "Fish"
-    carb: "Rice"
+    attrs:
+      protein: "Fish"
+      carb: "Rice"
+      legume: null
   - name: "Salmao em cama de pera (boa bao)"
-    protein: "Fish"
-    carb: "Rice"
+    attrs:
+      protein: "Fish"
+      carb: "Rice"
+      legume: null
   - name: "Risotto de cogumelos"
-    protein: "Other"
-    carb: "Rice"
+    attrs:
+      protein: "Other"
+      carb: "Rice"
+      legume: null
   - name: "Pizza"
-    protein: "Other"
-    carb: "Other"
+    attrs:
+      protein: "Other"
+      carb: "Other"
+      legume: null
   - name: "Tortilla"
-    protein: "Egg"
-    carb: "Potato"
+    attrs:
+      protein: "Egg"
+      carb: "Potato"
+      legume: null
   - name: "Ramen"
-    protein: "Tofu"
-    carb: "Pasta"
+    attrs:
+      protein: "Tofu"
+      carb: "Pasta"
+      legume: null
   - name: "Pad Thai"
-    protein: "Tofu"
-    carb: "Pasta"
+    attrs:
+      protein: "Tofu"
+      carb: "Pasta"
+      legume: null
   - name: "Canja de cogumelos"
-    protein: "Other"
-    carb: "Pasta"
+    attrs:
+      protein: "Other"
+      carb: "Pasta"
+      legume: null
   - name: "Sopa de legumes"
-    protein: "Other"
-    carb: "Other"
+    attrs:
+      protein: "Other"
+      carb: "Other"
+      legume: null
   - name: "Tofu grelhado com legumes e arroz"
-    protein: "Tofu"
-    carb: "Rice"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: null
   - name: "Omelete de tofu com legumes"
-    protein: "Tofu"
-    carb: "Rice"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: null
   - name: "Tofu desfiado no forno com arroz"
-    protein: "Tofu"
-    carb: "Rice"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: null
   - name: "Teriaky de tofu"
-    protein: "Tofu"
-    carb: "Rice"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: null
   - name: "Tofu à Brás"
-    protein: "Tofu"
-    carb: "Potato"
+    attrs:
+      protein: "Tofu"
+      carb: "Potato"
+      legume: null
   - name: "Tofu com molho de amendoim e legumes salteados"
-    protein: "Tofu"
-    carb: "Pasta"
+    attrs:
+      protein: "Tofu"
+      carb: "Pasta"
+      legume: null
   - name: "Tofu assado com batata e legumes"
-    protein: "Tofu"
-    carb: "Potato"
+    attrs:
+      protein: "Tofu"
+      carb: "Potato"
+      legume: null
   - name: "Caril de maça com tofu panado"
-    protein: "Tofu"
-    carb: "Rice"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: null
   - name: "Tikka masala de tofu"
-    protein: "Tofu"
-    carb: "Rice"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: null
   - name: "Almondegas de tofu e feijao branco com caril"
-    protein: "Tofu"
-    carb: "Rice"
-    legume: "Feijao branco"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: "Feijao branco"
   - name: "Stir fery de tofu e legumes (com arroz/noodles)"
-    protein: "Tofu"
-    carb: "Rice"
+    attrs:
+      protein: "Tofu"
+      carb: "Rice"
+      legume: null

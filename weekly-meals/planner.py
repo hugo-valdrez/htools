@@ -12,10 +12,14 @@ CONDITIONS_PATH = Path(__file__).parent / "configs" / "conditions.yaml"
 
 
 def solve_meal_plan(current_plan, remaining_dishes):
-    if conditions_manager.check_conditions(meal_selection=current_plan):
-        return current_plan
+    if not conditions_manager.can_still_satisfy(
+        meal_selection=current_plan, remaining_dishes=remaining_dishes
+    ):
+        return None
 
-    if len(current_plan) >= 7 or not remaining_dishes:
+    if len(current_plan) == conditions_manager.meal_plan_size:
+        if conditions_manager.check_conditions(meal_selection=current_plan):
+            return current_plan
         return None
 
     indices = list(range(len(remaining_dishes)))
@@ -37,9 +41,15 @@ if __name__ == "__main__":
     available_dishes = dishes_reader.read()["dishes"]
 
     conditions_reader = ReaderFactory.create_reader(file_path=CONDITIONS_PATH)
-    conditions = conditions_reader.read()
+    config = conditions_reader.read()
 
-    conditions_kwargs = {k: v for d in conditions["conditions"] for k, v in d.items()}
-    conditions_manager = ConditionsManager(**conditions_kwargs)
+    profile_name = (
+        sys.argv[1] if len(sys.argv) > 1 else config.get("default_profile", "default")
+    )
+    profiles = config.get("profiles", {})
+    if profile_name not in profiles:
+        raise ValueError(f"Unknown profile: {profile_name}")
+
+    conditions_manager = ConditionsManager.from_profile(profiles[profile_name])
     meal_plan = solve_meal_plan([], available_dishes)
     print(meal_plan)

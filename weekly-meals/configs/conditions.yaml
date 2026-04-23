@@ -1,9 +1,60 @@
-conditions:
-  - meal_plan_size: 7
-  - tofu_dishes_size: 2
-  - fish_dishes_size: 1
-  - legume_dishes_size: 3
-  - pasta_dishes_size: 1
-  - rice_dishes_size: 1
-  - potato_dishes_size: 1
-  - maximum_repeated_legume: 1
+default_profile: default
+
+profiles:
+  default:
+    plan_size: 6
+    rules:
+      - id: tofu_exact
+        type: count
+        where:
+          attr: protein
+          eq: Tofu
+        op: eq
+        value: 2
+
+      - id: fish_exact
+        type: count
+        where:
+          attr: protein
+          eq: Fish
+        op: eq
+        value: 1
+
+      - id: legume_exact
+        type: count
+        where:
+          attr: legume
+          exists: true
+        op: eq
+        value: 3
+
+      - id: pasta_min
+        type: count
+        where:
+          attr: carb
+          eq: Pasta
+        op: gte
+        value: 1
+
+      - id: rice_min
+        type: count
+        where:
+          attr: carb
+          eq: Rice
+        op: gte
+        value: 1
+
+      - id: potato_min
+        type: count
+        where:
+          attr: carb
+          eq: Potato
+        op: gte
+        value: 1
+
+      - id: max_same_legume
+        type: max_frequency
+        key: legume
+        ignore_null: true
+        op: lte
+        value: 1
