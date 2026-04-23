@@ -5,10 +5,74 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from abstract.conditions import ConditionsManager
+from history import (
+    assign_runtime_ids,
+    get_history_sets,
+    load_history,
+    save_history_entry,
+)
 from utils.readers.reader_factory import ReaderFactory
 
 DISHES_PATH = Path(__file__).parent / "configs" / "dishes.yaml"
 CONDITIONS_PATH = Path(__file__).parent / "configs" / "conditions.yaml"
+HISTORY_PATH = Path(__file__).parent / "configs" / "history.yaml"
+HISTORY_PENALTY_WEIGHT = 0.25
+
+
+def weighted_indices(dishes):
+    weighted_candidates = [
+        (idx, dish.get("selection_weight", 1.0)) for idx, dish in enumerate(dishes)
+    ]
+    ordered_indices = []
+
+    while weighted_candidates:
+        total_weight = sum(weight for _, weight in weighted_candidates)
+        if total_weight <= 0:
+            random.shuffle(weighted_candidates)
+            ordered_indices.extend(idx for idx, _ in weighted_candidates)
+            break
+
+        threshold = random.uniform(0, total_weight)
+        running_weight = 0.0
+
+        for position, (idx, weight) in enumerate(weighted_candidates):
+            running_weight += weight
+            if threshold <= running_weight:
+                ordered_indices.append(idx)
+                weighted_candidates.pop(position)
+                break
+
+    return ordered_indices
+
+
+def prompt_to_save():
+    try:
+        answer = input("Save this meal plan to history? [y/N] ").strip().lower()
+    except EOFError:
+        return False
+
+    return answer in {"y", "yes"}
+
+
+def prepare_dishes_for_history(dishes, blocked_ids, deprioritized_ids):
+    prepared_dishes = []
+
+    for dish in dishes:
+        if dish["id"] in blocked_ids:
+            continue
+
+        dish_copy = dict(dish)
+        dish_copy["selection_weight"] = (
+            HISTORY_PENALTY_WEIGHT if dish_copy["id"] in deprioritized_ids else 1.0
+        )
+        prepared_dishes.append(dish_copy)
+
+    return prepared_dishes
+
+
+def print_meal_plan(meal_plan):
+    for dish in meal_plan:
+        print(f"- {dish['name']}")
 
 
 def solve_meal_plan(current_plan, remaining_dishes):
@@ -22,8 +86,7 @@ def solve_meal_plan(current_plan, remaining_dishes):
             return current_plan
         return None
 
-    indices = list(range(len(remaining_dishes)))
-    random.shuffle(indices)
+    indices = weighted_indices(remaining_dishes)
 
     for idx in indices:
         selection = remaining_dishes[idx]
@@ -38,7 +101,7 @@ def solve_meal_plan(current_plan, remaining_dishes):
 
 if __name__ == "__main__":
     dishes_reader = ReaderFactory.create_reader(file_path=DISHES_PATH)
-    available_dishes = dishes_reader.read()["dishes"]
+    available_dishes = assign_runtime_ids(dishes_reader.read()["dishes"])
 
     conditions_reader = ReaderFactory.create_reader(file_path=CONDITIONS_PATH)
     config = conditions_reader.read()
@@ -51,5 +114,18 @@ if __name__ == "__main__":
         raise ValueError(f"Unknown profile: {profile_name}")
 
     conditions_manager = ConditionsManager.from_profile(profiles[profile_name])
+    history_data = load_history(HISTORY_PATH)
+    blocked_ids, deprioritized_ids = get_history_sets(history_data, profile_name)
+    available_dishes = prepare_dishes_for_history(
+        available_dishes,
+        blocked_ids=blocked_ids,
+        deprioritized_ids=deprioritized_ids,
+    )
+
     meal_plan = solve_meal_plan([], available_dishes)
-    print(meal_plan)
+    if meal_plan is None:
+        print("No valid meal plan found.")
+    else:
+        print_meal_plan(meal_plan)
+        if prompt_to_save():
+            save_history_entry(HISTORY_PATH, history_data, profile_name, meal_plan)

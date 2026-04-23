@@ -1,5 +1,3 @@
-- Add weights; Dishes that were choosen last week need to have a lower chance to be choosen this week.
-- Refactor condtitions; Conditions should be more dynamic, it should be able to everything only from changing the YAML file, there should be no need to touch the python code.
 - Should I force a schema on conditions & schema?
 - Print the results in a nice way.
 - Maybe use an LLM to generate the products needed to buy for the recipies?
