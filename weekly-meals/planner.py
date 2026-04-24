@@ -70,9 +70,51 @@ def prepare_dishes_for_history(dishes, blocked_ids, deprioritized_ids):
     return prepared_dishes
 
 
-def print_meal_plan(meal_plan):
+def print_meal_plan(meal_plan, profile_name):
+    print("Weekly Meal Plan")
+    print(f"Profile: {profile_name}")
+    print(f"Meals: {len(meal_plan)}")
+    print()
+
+    for index, dish in enumerate(meal_plan, start=1):
+        attrs = dish.get("attrs", {})
+        legume = attrs.get("legume") or "no"
+
+        print(f"  {index}. {dish['name']}")
+        print(
+            "     "
+            f"protein: {attrs.get('protein', 'n/a')}"
+            f" | carb: {attrs.get('carb', 'n/a')}"
+            f" | legume: {legume}"
+        )
+        print()
+
+    print_meal_summary(meal_plan)
+
+
+def print_meal_summary(meal_plan):
+    protein_counts = count_attr_values(meal_plan, "protein")
+    carb_counts = count_attr_values(meal_plan, "carb")
+    legume_dishes = sum(1 for dish in meal_plan if dish.get("attrs", {}).get("legume"))
+
+    print("Summary")
+    print(f"- protein: {format_counts(protein_counts)}")
+    print(f"- carb: {format_counts(carb_counts)}")
+    print(f"- legume dishes: {legume_dishes}")
+
+
+def count_attr_values(meal_plan, attr_name):
+    counts = {}
+
     for dish in meal_plan:
-        print(f"- {dish['name']}")
+        value = dish.get("attrs", {}).get(attr_name, "n/a")
+        counts[value] = counts.get(value, 0) + 1
+
+    return counts
+
+
+def format_counts(counts):
+    return " | ".join(f"{value} x{count}" for value, count in sorted(counts.items()))
 
 
 def solve_meal_plan(current_plan, remaining_dishes):
@@ -126,6 +168,6 @@ if __name__ == "__main__":
     if meal_plan is None:
         print("No valid meal plan found.")
     else:
-        print_meal_plan(meal_plan)
+        print_meal_plan(meal_plan, profile_name)
         if prompt_to_save():
             save_history_entry(HISTORY_PATH, history_data, profile_name, meal_plan)

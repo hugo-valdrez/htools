@@ -1,3 +1,1 @@
-- Should I force a schema on conditions & schema?
-- Print the results in a nice way.
 - Maybe use an LLM to generate the products needed to buy for the recipies?
