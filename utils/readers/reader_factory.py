@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from utils.readers.base_reader import BaseReader
+from utils.readers.parquet_reader import ParquetReader
 from utils.readers.yaml_reader import YAMLReader
 
 
@@ -8,6 +9,7 @@ class ReaderFactory:
     _readers = {
         ".yaml": YAMLReader,
         ".yml": YAMLReader,
+        ".parquet": ParquetReader,
     }
 
     @classmethod
