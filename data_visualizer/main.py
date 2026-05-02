@@ -11,24 +11,11 @@ from urllib.parse import parse_qs, urlparse
 
 import polars as pl
 
-from data_visualizer.abstract.base_data_pager import BaseDataPager
-from data_visualizer.abstract.csv_data_pager import CSVDataPager
-from data_visualizer.abstract.parquet_data_pager import ParquetDataPager
+from data_visualizer.abstract.reader_session import ReaderSession
+from data_visualizer.session_factory import create_session
 
 PAGE_SIZE = 50
-SUPPORTED_FORMATS = {".csv", ".parquet"}
 HTML_PATH = Path(__file__).with_name("index.html")
-
-
-def create_pager(file_path: Path) -> BaseDataPager:
-    suffix = file_path.suffix.lower()
-    if suffix == ".parquet":
-        return ParquetDataPager(file_path)
-    if suffix == ".csv":
-        return CSVDataPager(file_path)
-
-    supported = ", ".join(sorted(SUPPORTED_FORMATS))
-    raise ValueError(f"Unsupported file format: {suffix}. Supported: {supported}")
 
 
 def build_parser() -> ArgumentParser:
@@ -56,7 +43,7 @@ def load_html() -> str:
     return HTML_PATH.read_text(encoding="utf-8")
 
 
-def make_handler(pager: BaseDataPager):
+def make_handler(session: ReaderSession):
     class VisualizerHandler(BaseHTTPRequestHandler):
         def _send_json(self, payload: dict[str, object]) -> None:
             body = json.dumps(payload, default=str).encode("utf-8")
@@ -84,10 +71,10 @@ def make_handler(pager: BaseDataPager):
             if parsed.path == "/api/meta":
                 self._send_json(
                     {
-                        "file_name": pager.file_path.name,
-                        "format": pager.format_name,
-                        "columns": pager.columns(),
-                        "total_rows": pager.total_rows(),
+                        "file_name": session.file_path.name,
+                        "format": session.format_name,
+                        "columns": session.columns,
+                        "total_rows": session.total_rows,
                         "page_size": PAGE_SIZE,
                     }
                 )
@@ -99,7 +86,7 @@ def make_handler(pager: BaseDataPager):
                 if index < 0:
                     index = 0
 
-                frame = pager.page(index, PAGE_SIZE)
+                frame = session.get_page(index)
                 self._send_json({"page_index": index, "rows": serialize_frame(frame)})
                 return
 
@@ -114,10 +101,10 @@ def make_handler(pager: BaseDataPager):
 def main(argv=None) -> None:
     args = build_parser().parse_args(argv)
     file_path = args.input_file.resolve()
-    pager = create_pager(file_path)
+    session = create_session(file_path, PAGE_SIZE)
 
     port = find_free_port()
-    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(pager))
+    server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(session))
     url = f"http://127.0.0.1:{port}"
 
     if not args.no_browser:

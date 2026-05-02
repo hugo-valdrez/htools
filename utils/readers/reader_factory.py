@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from utils.readers.csv_reader import CSVReader
 from utils.readers.base_reader import BaseReader
 from utils.readers.parquet_reader import ParquetReader
 from utils.readers.yaml_reader import YAMLReader
@@ -7,6 +8,7 @@ from utils.readers.yaml_reader import YAMLReader
 
 class ReaderFactory:
     _readers = {
+        ".csv": CSVReader,
         ".yaml": YAMLReader,
         ".yml": YAMLReader,
         ".parquet": ParquetReader,
