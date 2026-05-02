@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from utils.readers.yaml_reader import YAMLReader
 from utils.readers.base_reader import BaseReader
+from utils.readers.yaml_reader import YAMLReader
 
 
 class ReaderFactory:

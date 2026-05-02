@@ -2,7 +2,7 @@ default_profile: default
 
 profiles:
   default:
-    plan_size: 6
+    plan_size: 7
     rules:
       - id: tofu_exact
         type: count
