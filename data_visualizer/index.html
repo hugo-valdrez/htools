@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Visualizer</title>
+  <style>
+    :root {
+      --page-bg: #2457a8;
+      --window-bg: #d4d0c8;
+      --window-border-dark: #404040;
+      --window-border-light: #ffffff;
+      --titlebar-bg: linear-gradient(180deg, #1f69d9 0%, #0d3f93 100%);
+      --titlebar-text: #ffffff;
+      --panel-bg: #ece9d8;
+      --panel-border: #8a867a;
+      --text-color: #1b1b1b;
+      --muted-text: #4d4d4d;
+      --button-bg: #d4d0c8;
+      --button-text: #000000;
+      --button-border-light: #ffffff;
+      --button-border-dark: #808080;
+      --button-border-deep: #404040;
+      --table-bg: #ffffff;
+      --table-alt-bg: #f4f7fb;
+      --table-head-bg: #dbe7f8;
+      --table-head-text: #102f5d;
+      --table-border: #8ea4bf;
+      --status-bg: #ece9d8;
+      --status-border: #9d9889;
+      --shadow: 4px 4px 0 rgba(0, 0, 0, 0.28);
+      --font-stack: Tahoma, Verdana, Arial, sans-serif;
+      --font-size: 12px;
+      --title-size: 13px;
+      --window-width: min(1500px, calc(100vw - 32px));
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 120px),
+        var(--page-bg);
+      color: var(--text-color);
+      font-family: var(--font-stack);
+      font-size: var(--font-size);
+      line-height: 1.35;
+    }
+
+    .desktop {
+      min-height: 100vh;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .window {
+      width: var(--window-width);
+      height: calc(100vh - 24px);
+      border: 1px solid var(--window-border-dark);
+      box-shadow: var(--shadow);
+      background: var(--window-bg);
+      outline: 1px solid var(--window-border-light);
+      outline-offset: -2px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .titlebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 8px;
+      background: var(--titlebar-bg);
+      color: var(--titlebar-text);
+      border-bottom: 1px solid var(--window-border-dark);
+      font-size: var(--title-size);
+      font-weight: bold;
+      letter-spacing: 0.02em;
+    }
+
+    .titlebar-caption {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .window-control {
+      width: 16px;
+      height: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.7);
+      background: rgba(255, 255, 255, 0.28);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      line-height: 1;
+    }
+
+    .chrome {
+      padding: 8px;
+      background: var(--window-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .toolbar,
+    .info-strip,
+    .statusbar {
+      border: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      padding: 6px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .label {
+      color: var(--muted-text);
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-size: 10px;
+    }
+
+    button,
+    select {
+      font: inherit;
+      color: var(--button-text);
+      background: var(--button-bg);
+      border-top: 1px solid var(--button-border-light);
+      border-left: 1px solid var(--button-border-light);
+      border-right: 1px solid var(--button-border-dark);
+      border-bottom: 1px solid var(--button-border-deep);
+      padding: 4px 10px;
+      min-height: 26px;
+    }
+
+    button:not(:disabled) {
+      cursor: pointer;
+    }
+
+    button:active:not(:disabled) {
+      border-top: 1px solid var(--button-border-deep);
+      border-left: 1px solid var(--button-border-deep);
+      border-right: 1px solid var(--button-border-light);
+      border-bottom: 1px solid var(--button-border-light);
+      transform: translateY(1px);
+    }
+
+    button:disabled,
+    select:disabled {
+      color: var(--muted-text);
+      cursor: default;
+    }
+
+    .info-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .info-cell {
+      padding: 8px 10px;
+      border-right: 1px solid var(--panel-border);
+      min-width: 0;
+    }
+
+    .info-cell:last-child {
+      border-right: 0;
+    }
+
+    .info-value {
+      display: block;
+      margin-top: 3px;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .table-shell {
+      border: 1px solid var(--panel-border);
+      background: var(--table-bg);
+      overflow: auto;
+      flex: 1;
+      min-height: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--table-bg);
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      text-align: left;
+      background: var(--table-head-bg);
+      color: var(--table-head-text);
+      border: 1px solid var(--table-border);
+      padding: 6px 8px;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 5px 8px;
+      border: 1px solid var(--table-border);
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(even) {
+      background: var(--table-alt-bg);
+    }
+
+    tbody tr:hover {
+      background: color-mix(in srgb, var(--table-head-bg) 35%, var(--table-bg));
+    }
+
+    .empty {
+      padding: 24px;
+      color: var(--muted-text);
+    }
+
+    .statusbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: var(--status-bg);
+      border-color: var(--status-border);
+      color: var(--muted-text);
+    }
+
+    .status-pill {
+      border: 1px solid var(--status-border);
+      background: var(--table-bg);
+      padding: 3px 8px;
+      min-width: 100px;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        overflow: auto;
+      }
+
+      .window {
+        height: auto;
+        min-height: calc(100vh - 24px);
+      }
+
+      .info-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .info-cell:nth-child(2) {
+        border-right: 0;
+      }
+
+      .info-cell:nth-child(-n + 2) {
+        border-bottom: 1px solid var(--panel-border);
+      }
+
+      .table-shell {
+        min-height: 320px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      body {
+        overflow: auto;
+      }
+
+      .desktop {
+        padding: 8px;
+      }
+
+      .chrome {
+        padding: 8px;
+      }
+
+      .info-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .info-cell {
+        border-right: 0;
+        border-bottom: 1px solid var(--panel-border);
+      }
+
+      .info-cell:last-child {
+        border-bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="desktop">
+    <div class="window">
+      <div class="titlebar">
+        <div class="titlebar-caption" id="titlebar-caption">data_visualizer.exe</div>
+        <div class="window-controls" aria-hidden="true">
+          <span class="window-control">_</span>
+          <span class="window-control">□</span>
+          <span class="window-control">×</span>
+        </div>
+      </div>
+
+      <div class="chrome">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <button id="prev">Previous</button>
+            <button id="next">Next</button>
+            <span class="status-pill" id="status">Rows 0-0 of 0</span>
+          </div>
+        </div>
+
+        <div class="info-strip">
+          <div class="info-cell">
+            <span class="label">File</span>
+            <span class="info-value" id="meta-file">-</span>
+          </div>
+          <div class="info-cell">
+            <span class="label">Format</span>
+            <span class="info-value" id="meta-format">-</span>
+          </div>
+          <div class="info-cell">
+            <span class="label">Rows</span>
+            <span class="info-value" id="meta-rows">-</span>
+          </div>
+          <div class="info-cell">
+            <span class="label">Columns</span>
+            <span class="info-value" id="meta-columns">-</span>
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div id="empty" class="empty" hidden>No rows available.</div>
+        </div>
+
+        <div class="statusbar">
+          <span class="status-pill">Cached Pages: <span id="cache-count">0</span></span>
+          <span class="status-pill">Page Size: <span id="page-size">50</span></span>
+          <span class="status-pill">Mode: Lazy Paging</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pageCache = new Map();
+    let meta = null;
+    let pageIndex = 0;
+
+    const titlebarCaption = document.getElementById("titlebar-caption");
+    const metaFileEl = document.getElementById("meta-file");
+    const metaFormatEl = document.getElementById("meta-format");
+    const metaRowsEl = document.getElementById("meta-rows");
+    const metaColumnsEl = document.getElementById("meta-columns");
+    const cacheCountEl = document.getElementById("cache-count");
+    const pageSizeEl = document.getElementById("page-size");
+    const statusEl = document.getElementById("status");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    const thead = document.getElementById("thead");
+    const tbody = document.getElementById("tbody");
+    const emptyEl = document.getElementById("empty");
+
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+      return response.json();
+    }
+
+    function renderTable(rows) {
+      if (!meta.columns.length) {
+        thead.innerHTML = "";
+        tbody.innerHTML = "";
+        emptyEl.hidden = false;
+        return;
+      }
+
+      emptyEl.hidden = rows.length !== 0;
+      thead.innerHTML = `<tr>${meta.columns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
+      tbody.innerHTML = rows.map((row) => {
+        const cells = meta.columns.map((column) => {
+          const value = row[column];
+          return `<td>${value === null ? "" : String(value)}</td>`;
+        }).join("");
+        return `<tr>${cells}</tr>`;
+      }).join("");
+    }
+
+    function updateControls(rows) {
+      const start = rows.length === 0 ? 0 : pageIndex * meta.page_size + 1;
+      const end = rows.length === 0 ? 0 : pageIndex * meta.page_size + rows.length;
+      statusEl.textContent = `Rows ${start}-${end} of ${meta.total_rows}`;
+      prevBtn.disabled = pageIndex === 0;
+      nextBtn.disabled = end >= meta.total_rows;
+      cacheCountEl.textContent = pageCache.size;
+    }
+
+    async function loadPage(index) {
+      pageIndex = index;
+      let rows = pageCache.get(index);
+      if (!rows) {
+        const payload = await fetchJson(`/api/page?index=${index}`);
+        rows = payload.rows;
+        pageCache.set(index, rows);
+      }
+      renderTable(rows);
+      updateControls(rows);
+    }
+
+    async function init() {
+      meta = await fetchJson("/api/meta");
+      titlebarCaption.textContent = `data_visualizer.exe - ${meta.file_name}`;
+      metaFileEl.textContent = meta.file_name;
+      metaFormatEl.textContent = meta.format.toUpperCase();
+      metaRowsEl.textContent = meta.total_rows.toLocaleString();
+      metaColumnsEl.textContent = String(meta.columns.length);
+      pageSizeEl.textContent = String(meta.page_size);
+      await loadPage(0);
+    }
+
+    prevBtn.addEventListener("click", () => {
+      if (pageIndex > 0) {
+        loadPage(pageIndex - 1);
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      loadPage(pageIndex + 1);
+    });
+
+    init().catch((error) => {
+      document.body.innerHTML = `<pre style="padding:20px;color:#7a0000;background:#fff3f3;font:12px Tahoma, sans-serif;">${error.message}</pre>`;
+    });
+  </script>
+</body>
+</html>

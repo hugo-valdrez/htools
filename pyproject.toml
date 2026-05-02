@@ -9,6 +9,7 @@ packages = [
   { include = "utils" },
   { include = "weekly_meals" },
   { include = "file_converter" },
+  { include = "data_visualizer" },
 ]
 
 [tool.poetry.scripts]
