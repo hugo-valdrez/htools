@@ -2,10 +2,12 @@ import random
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-from abstract.conditions import ConditionsManager
-from history import (
+from weekly_meals.abstract.conditions import ConditionsManager
+from weekly_meals.history import (
     assign_runtime_ids,
     get_history_sets,
     load_history,
@@ -117,7 +119,7 @@ def format_counts(counts):
     return " | ".join(f"{value} x{count}" for value, count in sorted(counts.items()))
 
 
-def solve_meal_plan(current_plan, remaining_dishes):
+def solve_meal_plan(current_plan, remaining_dishes, conditions_manager):
     if not conditions_manager.can_still_satisfy(
         meal_selection=current_plan, remaining_dishes=remaining_dishes
     ):
@@ -134,14 +136,19 @@ def solve_meal_plan(current_plan, remaining_dishes):
         selection = remaining_dishes[idx]
         new_remaining = remaining_dishes[:idx] + remaining_dishes[idx + 1 :]
 
-        result = solve_meal_plan(current_plan + [selection], new_remaining)
+        result = solve_meal_plan(
+            current_plan + [selection], new_remaining, conditions_manager
+        )
         if result is not None:
             return result
 
     return None
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
     dishes_reader = ReaderFactory.create_reader(file_path=DISHES_PATH)
     available_dishes = assign_runtime_ids(dishes_reader.read()["dishes"])
 
@@ -149,7 +156,7 @@ if __name__ == "__main__":
     config = conditions_reader.read()
 
     profile_name = (
-        sys.argv[1] if len(sys.argv) > 1 else config.get("default_profile", "default")
+        argv[0] if len(argv) > 0 else config.get("default_profile", "default")
     )
     profiles = config.get("profiles", {})
     if profile_name not in profiles:
@@ -164,10 +171,14 @@ if __name__ == "__main__":
         deprioritized_ids=deprioritized_ids,
     )
 
-    meal_plan = solve_meal_plan([], available_dishes)
+    meal_plan = solve_meal_plan([], available_dishes, conditions_manager)
     if meal_plan is None:
         print("No valid meal plan found.")
     else:
         print_meal_plan(meal_plan, profile_name)
         if prompt_to_save():
             save_history_entry(HISTORY_PATH, history_data, profile_name, meal_plan)
+
+
+if __name__ == "__main__":
+    main()

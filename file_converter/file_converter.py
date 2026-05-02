@@ -41,9 +41,9 @@ def convert_file(input_file: Path, output_file: Path) -> None:
         writer.close()
 
 
-def main() -> None:
+def main(argv=None) -> None:
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     input_format = args.input_file.suffix.lower()
     if input_format not in SUPPORTED_INPUT_FORMATS:

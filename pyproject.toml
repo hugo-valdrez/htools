@@ -3,7 +3,16 @@ name = "htools"
 version = "0.1.0"
 description = "Hugo’s Utility Tools: A collection of scripts and tools that I’ve found handy for daily use and beyond."
 authors = ["valdrez"]
-package-mode = false
+
+packages = [
+  { include = "htools_cli" },
+  { include = "utils" },
+  { include = "weekly_meals" },
+  { include = "file_converter" },
+]
+
+[tool.poetry.scripts]
+htools = "htools_cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"
