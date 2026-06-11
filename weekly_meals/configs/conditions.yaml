@@ -58,3 +58,11 @@ profiles:
         ignore_null: true
         op: lte
         value: 1
+
+      - id: soup_max
+        type: count
+        where:
+          attr: is_soup
+          eq: true
+        op: lte
+        value: 1

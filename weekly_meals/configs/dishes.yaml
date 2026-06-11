@@ -164,11 +164,13 @@ dishes:
       protein: "Other"
       carb: "Pasta"
       legume: null
+      is_soup: true
   - name: "Sopa de legumes"
     attrs:
       protein: "Other"
       carb: "Other"
       legume: null
+      is_soup: true
   - name: "Tofu grelhado com legumes e arroz"
     attrs:
       protein: "Tofu"

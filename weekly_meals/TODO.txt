@@ -1,3 +1,1 @@
 - Maybe use an LLM to generate the products needed to buy for the recipies?
-- add soup def, be able to limit number of soups.
-- soemtimes we get the same dish twice???? maybe more, bug idk 
