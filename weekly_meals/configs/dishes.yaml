@@ -79,11 +79,6 @@ dishes:
       protein: "Soy"
       carb: "Pasta"
       legume: null
-  - name: "Bolenhesa de soja"
-    attrs:
-      protein: "Soy"
-      carb: "Pasta"
-      legume: null
   - name: "Empadao de soja"
     attrs:
       protein: "Soy"
@@ -115,11 +110,6 @@ dishes:
       carb: "Rice"
       legume: "Feijao vermelho"
   - name: "Salmão grelhado"
-    attrs:
-      protein: "Fish"
-      carb: "Rice"
-      legume: null
-  - name: "Arroz de pota"
     attrs:
       protein: "Fish"
       carb: "Rice"

@@ -25,7 +25,7 @@ profiles:
         where:
           attr: legume
           exists: true
-        op: eq
+        op: lte
         value: 3
 
       - id: pasta_min

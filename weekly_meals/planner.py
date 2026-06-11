@@ -47,13 +47,110 @@ def weighted_indices(dishes):
     return ordered_indices
 
 
-def prompt_to_save():
-    try:
-        answer = input("Save this meal plan to history? [y/N] ").strip().lower()
-    except EOFError:
-        return False
+def parse_swap_input(raw, plan_size):
+    tokens = [token for token in raw.replace(",", " ").split() if token]
+    if not tokens:
+        return None
 
-    return answer in {"y", "yes"}
+    slots = set()
+    for token in tokens:
+        if not token.isdigit():
+            return None
+        position = int(token)
+        if position < 1 or position > plan_size:
+            return None
+        slots.add(position - 1)
+
+    if not slots or len(slots) >= plan_size:
+        return None
+
+    return sorted(slots)
+
+
+def swap_slots(
+    meal_plan,
+    slots_to_swap,
+    all_dishes,
+    blocked_ids,
+    deprioritized_ids,
+    conditions_manager,
+):
+    kept_indices = [i for i in range(len(meal_plan)) if i not in set(slots_to_swap)]
+    kept_meals = [meal_plan[i] for i in kept_indices]
+    kept_ids = {dish["id"] for dish in kept_meals}
+
+    pool = prepare_dishes_for_history(
+        all_dishes,
+        blocked_ids=blocked_ids,
+        deprioritized_ids=deprioritized_ids,
+    )
+    pool = [dish for dish in pool if dish["id"] not in kept_ids]
+
+    result = solve_meal_plan(list(kept_meals), pool, conditions_manager)
+    if result is None:
+        return None
+
+    replacements = result[len(kept_meals) :]
+    new_plan = list(meal_plan)
+    for slot, replacement in zip(sorted(slots_to_swap), replacements):
+        new_plan[slot] = replacement
+
+    return new_plan
+
+
+def prompt_swap_or_save(
+    meal_plan,
+    profile_name,
+    all_dishes,
+    blocked_ids,
+    deprioritized_ids,
+    conditions_manager,
+):
+    current_plan = meal_plan
+
+    while True:
+        try:
+            choice = input("[s]wap meals, sa[v]e, [q]uit (no save): ").strip().lower()
+        except EOFError:
+            return current_plan, False
+
+        if choice in {"v", "save"}:
+            return current_plan, True
+        if choice in {"q", "quit"}:
+            return current_plan, False
+        if choice not in {"s", "swap"}:
+            continue
+
+        try:
+            raw = input(f"Slots to regenerate (1-{len(current_plan)}, e.g. 3 or 3,5): ")
+        except EOFError:
+            return current_plan, False
+
+        slots = parse_swap_input(raw, len(current_plan))
+        if slots is None:
+            print(
+                "Invalid selection. Enter slot numbers within range and fewer "
+                "than the full plan."
+            )
+            continue
+
+        new_plan = swap_slots(
+            current_plan,
+            slots,
+            all_dishes=all_dishes,
+            blocked_ids=blocked_ids,
+            deprioritized_ids=deprioritized_ids,
+            conditions_manager=conditions_manager,
+        )
+
+        human_slots = ", ".join(str(slot + 1) for slot in slots)
+        if new_plan is None:
+            print(f"No valid swap found for slot(s) {human_slots} — original kept.")
+            continue
+
+        current_plan = new_plan
+        print()
+        print_meal_plan(current_plan, profile_name)
 
 
 def prepare_dishes_for_history(dishes, blocked_ids, deprioritized_ids):
@@ -150,7 +247,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     dishes_reader = ReaderFactory.create_reader(file_path=DISHES_PATH)
-    available_dishes = assign_runtime_ids(dishes_reader.read()["dishes"])
+    all_dishes = assign_runtime_ids(dishes_reader.read()["dishes"])
 
     conditions_reader = ReaderFactory.create_reader(file_path=CONDITIONS_PATH)
     config = conditions_reader.read()
@@ -166,7 +263,7 @@ def main(argv=None):
     history_data = load_history(HISTORY_PATH)
     blocked_ids, deprioritized_ids = get_history_sets(history_data, profile_name)
     available_dishes = prepare_dishes_for_history(
-        available_dishes,
+        all_dishes,
         blocked_ids=blocked_ids,
         deprioritized_ids=deprioritized_ids,
     )
@@ -174,10 +271,19 @@ def main(argv=None):
     meal_plan = solve_meal_plan([], available_dishes, conditions_manager)
     if meal_plan is None:
         print("No valid meal plan found.")
-    else:
-        print_meal_plan(meal_plan, profile_name)
-        if prompt_to_save():
-            save_history_entry(HISTORY_PATH, history_data, profile_name, meal_plan)
+        return
+
+    print_meal_plan(meal_plan, profile_name)
+    final_plan, should_save = prompt_swap_or_save(
+        meal_plan,
+        profile_name,
+        all_dishes=all_dishes,
+        blocked_ids=blocked_ids,
+        deprioritized_ids=deprioritized_ids,
+        conditions_manager=conditions_manager,
+    )
+    if should_save:
+        save_history_entry(HISTORY_PATH, history_data, profile_name, final_plan)
 
 
 if __name__ == "__main__":
