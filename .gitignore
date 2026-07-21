@@ -218,6 +218,9 @@ __marimo__/
 # weekly-meals
 history.yaml
 
+# anki
+anki/data/
+
 # other
 commit_guide.md
 dummy/

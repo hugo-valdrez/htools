@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anki</title>
+  <style>
+    body {
+      margin: 0 auto;
+      max-width: 640px;
+      padding: 24px 16px;
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #1b1b1b;
+    }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    h2 { font-size: 17px; margin: 12px 0; }
+    button { font: inherit; padding: 6px 12px; margin: 2px 0; cursor: pointer; }
+    input, select { font: inherit; padding: 5px 6px; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { border: 1px solid #ccc; padding: 10px; margin-bottom: 8px; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .row > span:last-child { flex-shrink: 0; }
+    .muted { color: #666; font-size: 13px; }
+    .form { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .hidden { display: none; }
+    .card-face { font-size: 20px; margin: 16px 0; }
+    .hint { color: #555; font-style: italic; font-size: 16px; }
+    .link { background: none; border: none; color: #06c; text-decoration: underline; padding: 0; }
+    .error { color: #a00; }
+  </style>
+</head>
+<body>
+  <h1>Anki</h1>
+
+  <section id="view-decks" class="view">
+    <div class="form">
+      <input id="deck-name" placeholder="New deck name">
+      <button id="add-deck">Add deck</button>
+    </div>
+    <ul id="deck-list"></ul>
+    <p id="decks-empty" class="muted hidden">No decks yet. Add one above.</p>
+  </section>
+
+  <section id="view-cards" class="view hidden">
+    <button class="link" id="cards-back">&larr; Back to decks</button>
+    <h2 id="cards-title"></h2>
+    <div class="form">
+      <input id="card-front" placeholder="Front">
+      <input id="card-back" placeholder="Back">
+      <input id="card-hint" placeholder="Hint (optional)">
+      <button id="add-card">Add card</button>
+    </div>
+    <ul id="card-list"></ul>
+    <p id="cards-empty" class="muted hidden">No cards yet. Add one above.</p>
+  </section>
+
+  <section id="view-study" class="view hidden">
+    <button class="link" id="study-back">&larr; Back to decks</button>
+    <h2 id="study-title"></h2>
+
+    <div id="study-setup">
+      <p id="study-note" class="muted"></p>
+      <div class="form">
+        <label>Mode:
+          <select id="study-mode">
+            <option value="free">Free (until done)</option>
+            <option value="count">By number of cards</option>
+            <option value="time">By time</option>
+          </select>
+        </label>
+        <label id="count-wrap" class="hidden">Cards:
+          <input id="study-count" type="number" min="1" value="10" style="width:70px">
+        </label>
+        <label id="time-wrap" class="hidden">Minutes:
+          <input id="study-minutes" type="number" min="1" value="5" style="width:70px">
+        </label>
+      </div>
+      <label><input type="checkbox" id="study-all"> Study all cards (ignore schedule)</label>
+      <div class="form">
+        <button id="study-start">Start</button>
+      </div>
+    </div>
+
+    <div id="study-session" class="hidden">
+      <p id="study-progress" class="muted"></p>
+      <div class="card-face" id="study-front"></div>
+      <button id="show-hint">Show hint</button>
+      <div class="card-face hint hidden" id="study-hint"></div>
+      <button id="show-answer">Show answer</button>
+      <div class="card-face hidden" id="study-answer"></div>
+      <div id="grade" class="hidden">
+        <button id="grade-again">Again</button>
+        <button id="grade-good">Good</button>
+      </div>
+      <div class="form">
+        <button id="end-session">End session</button>
+      </div>
+    </div>
+
+    <div id="study-summary" class="hidden">
+      <p id="summary-text"></p>
+      <button id="summary-again">Study again</button>
+      <button class="link" id="summary-back">Back to decks</button>
+    </div>
+  </section>
+
+  <script>
+    const views = {
+      decks: document.getElementById("view-decks"),
+      cards: document.getElementById("view-cards"),
+      study: document.getElementById("view-study"),
+    };
+    let decksCache = [];
+    let currentDeck = null;
+    let session = null;
+
+    function show(view) {
+      for (const key in views) {
+        views[key].classList.toggle("hidden", key !== view);
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function api(method, url, body) {
+      const opts = { method };
+      if (body !== undefined) {
+        opts.body = JSON.stringify(body);
+      }
+      const response = await fetch(url, opts);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Request failed: ${response.status}`);
+      }
+      return data;
+    }
+
+    // --- Decks ---------------------------------------------------------------
+    const deckList = document.getElementById("deck-list");
+    const decksEmpty = document.getElementById("decks-empty");
+    const deckNameInput = document.getElementById("deck-name");
+
+    async function loadDecks() {
+      decksCache = await api("GET", "/api/decks");
+      deckList.innerHTML = decksCache.map((deck) => `
+        <li class="row">
+          <span>${escapeHtml(deck.name)}
+            <span class="muted">— ${deck.count} cards, ${deck.due} due</span></span>
+          <span>
+            <button data-action="study" data-id="${deck.id}">Study</button>
+            <button data-action="cards" data-id="${deck.id}">Cards</button>
+            <button data-action="delete" data-id="${deck.id}">Delete</button>
+          </span>
+        </li>`).join("");
+      decksEmpty.classList.toggle("hidden", decksCache.length > 0);
+    }
+
+    deckList.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const deck = decksCache.find((item) => item.id === button.dataset.id);
+      if (button.dataset.action === "delete") {
+        if (!confirm(`Delete deck "${deck.name}" and all its cards?`)) return;
+        await api("DELETE", `/api/decks?id=${deck.id}`);
+        await loadDecks();
+      } else if (button.dataset.action === "cards") {
+        openCards(deck);
+      } else if (button.dataset.action === "study") {
+        openStudy(deck);
+      }
+    });
+
+    async function addDeck() {
+      const name = deckNameInput.value.trim();
+      if (!name) return;
+      await api("POST", "/api/decks", { name });
+      deckNameInput.value = "";
+      await loadDecks();
+    }
+    document.getElementById("add-deck").addEventListener("click", addDeck);
+    deckNameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addDeck();
+    });
+
+    // --- Cards ---------------------------------------------------------------
+    const cardsTitle = document.getElementById("cards-title");
+    const cardList = document.getElementById("card-list");
+    const cardsEmpty = document.getElementById("cards-empty");
+    const frontInput = document.getElementById("card-front");
+    const backInput = document.getElementById("card-back");
+    const hintInput = document.getElementById("card-hint");
+
+    async function openCards(deck) {
+      currentDeck = deck;
+      cardsTitle.textContent = `${deck.name} — Cards`;
+      show("cards");
+      await loadCards();
+    }
+
+    async function loadCards() {
+      const cards = await api("GET", `/api/cards?deck=${currentDeck.id}`);
+      cardList.innerHTML = cards.map((card) => `
+        <li class="row">
+          <span>${escapeHtml(card.front)}
+            <span class="muted">&rarr; ${escapeHtml(card.back)}</span>
+            ${card.hint ? '<span class="muted">(hint)</span>' : ""}</span>
+          <button data-id="${card.id}">Delete</button>
+        </li>`).join("");
+      cardsEmpty.classList.toggle("hidden", cards.length > 0);
+    }
+
+    cardList.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-id]");
+      if (!button) return;
+      await api("DELETE", `/api/cards?deck=${currentDeck.id}&id=${button.dataset.id}`);
+      await loadCards();
+    });
+
+    async function addCard() {
+      const front = frontInput.value.trim();
+      const back = backInput.value.trim();
+      if (!front || !back) return;
+      await api("POST", "/api/cards", {
+        deck_id: currentDeck.id,
+        front,
+        back,
+        hint: hintInput.value.trim(),
+      });
+      frontInput.value = "";
+      backInput.value = "";
+      hintInput.value = "";
+      frontInput.focus();
+      await loadCards();
+    }
+    document.getElementById("add-card").addEventListener("click", addCard);
+    for (const input of [frontInput, backInput, hintInput]) {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") addCard();
+      });
+    }
+
+    document.getElementById("cards-back").addEventListener("click", async () => {
+      await loadDecks();
+      show("decks");
+    });
+
+    // --- Study ---------------------------------------------------------------
+    const studyTitle = document.getElementById("study-title");
+    const studyNote = document.getElementById("study-note");
+    const studySetup = document.getElementById("study-setup");
+    const studySession = document.getElementById("study-session");
+    const studySummary = document.getElementById("study-summary");
+    const modeSelect = document.getElementById("study-mode");
+    const countWrap = document.getElementById("count-wrap");
+    const timeWrap = document.getElementById("time-wrap");
+    const countInput = document.getElementById("study-count");
+    const minutesInput = document.getElementById("study-minutes");
+    const allCheckbox = document.getElementById("study-all");
+    const frontEl = document.getElementById("study-front");
+    const hintEl = document.getElementById("study-hint");
+    const answerEl = document.getElementById("study-answer");
+    const showHintBtn = document.getElementById("show-hint");
+    const showAnswerBtn = document.getElementById("show-answer");
+    const gradeEl = document.getElementById("grade");
+    const progressEl = document.getElementById("study-progress");
+
+    function openStudy(deck) {
+      currentDeck = deck;
+      studyTitle.textContent = `Study: ${deck.name}`;
+      studySetup.classList.remove("hidden");
+      studySession.classList.add("hidden");
+      studySummary.classList.add("hidden");
+      if (deck.count === 0) {
+        studyNote.textContent = "This deck has no cards yet. Add some first.";
+        allCheckbox.checked = false;
+        allCheckbox.disabled = true;
+      } else if (deck.due === 0) {
+        studyNote.textContent = "Nothing is due right now — study all to review anyway.";
+        allCheckbox.checked = true;
+        allCheckbox.disabled = false;
+      } else {
+        studyNote.textContent = `${deck.due} card(s) due.`;
+        allCheckbox.checked = false;
+        allCheckbox.disabled = false;
+      }
+      updateModeInputs();
+      show("study");
+    }
+
+    function updateModeInputs() {
+      countWrap.classList.toggle("hidden", modeSelect.value !== "count");
+      timeWrap.classList.toggle("hidden", modeSelect.value !== "time");
+    }
+    modeSelect.addEventListener("change", updateModeInputs);
+
+    document.getElementById("study-start").addEventListener("click", async () => {
+      const includeAll = allCheckbox.checked;
+      const cards = await api(
+        "GET",
+        `/api/study?deck=${currentDeck.id}${includeAll ? "&all=1" : ""}`
+      );
+      if (cards.length === 0) {
+        studyNote.textContent = includeAll
+          ? "This deck has no cards to study."
+          : "Nothing is due right now.";
+        return;
+      }
+      const mode = modeSelect.value;
+      session = {
+        queue: cards,
+        mode,
+        limit: mode === "count" ? Math.max(1, parseInt(countInput.value, 10) || 1) : null,
+        deadline:
+          mode === "time"
+            ? Date.now() + Math.max(1, parseInt(minutesInput.value, 10) || 1) * 60000
+            : null,
+        reviewed: 0,
+        current: null,
+        timer: null,
+      };
+      studySetup.classList.add("hidden");
+      studySummary.classList.add("hidden");
+      studySession.classList.remove("hidden");
+      if (mode === "time") {
+        session.timer = setInterval(tick, 1000);
+      }
+      nextCard();
+    });
+
+    function tick() {
+      if (!session) return;
+      if (Date.now() >= session.deadline) {
+        finishSession();
+      } else {
+        updateProgress();
+      }
+    }
+
+    function nextCard() {
+      if (session.mode === "time" && Date.now() >= session.deadline) return finishSession();
+      if (session.mode === "count" && session.reviewed >= session.limit) return finishSession();
+      if (session.queue.length === 0) return finishSession();
+      session.current = session.queue.shift();
+      showFront();
+      updateProgress();
+    }
+
+    function showFront() {
+      const card = session.current;
+      frontEl.textContent = card.front;
+      hintEl.classList.add("hidden");
+      answerEl.classList.add("hidden");
+      gradeEl.classList.add("hidden");
+      showAnswerBtn.classList.remove("hidden");
+      showHintBtn.classList.toggle("hidden", !card.hint);
+    }
+
+    showHintBtn.addEventListener("click", () => {
+      hintEl.textContent = session.current.hint;
+      hintEl.classList.remove("hidden");
+      showHintBtn.classList.add("hidden");
+    });
+
+    showAnswerBtn.addEventListener("click", () => {
+      answerEl.textContent = session.current.back;
+      answerEl.classList.remove("hidden");
+      showAnswerBtn.classList.add("hidden");
+      gradeEl.classList.remove("hidden");
+    });
+
+    async function grade(rating) {
+      if (!session) return;
+      const card = session.current;
+      session.reviewed += 1;
+      if (rating === "again") {
+        session.queue.splice(Math.min(3, session.queue.length), 0, card);
+      }
+      gradeEl.classList.add("hidden");
+      try {
+        await api("POST", "/api/review", {
+          deck_id: currentDeck.id,
+          card_id: card.id,
+          rating,
+        });
+      } catch (error) {
+        console.error(error);
+      }
+      if (!session) return;
+      nextCard();
+    }
+    document.getElementById("grade-again").addEventListener("click", () => grade("again"));
+    document.getElementById("grade-good").addEventListener("click", () => grade("good"));
+
+    function updateProgress() {
+      let text = `Reviewed: ${session.reviewed}`;
+      if (session.mode === "count") {
+        text += ` / ${session.limit}`;
+      } else if (session.mode === "time") {
+        const left = Math.max(0, session.deadline - Date.now());
+        const minutes = Math.floor(left / 60000);
+        const seconds = Math.floor((left % 60000) / 1000);
+        text += ` · ${minutes}:${String(seconds).padStart(2, "0")} left`;
+      } else {
+        const remaining = session.queue.length + (session.current ? 1 : 0);
+        text += ` · ${remaining} left`;
+      }
+      progressEl.textContent = text;
+    }
+
+    function finishSession() {
+      const reviewed = session ? session.reviewed : 0;
+      if (session && session.timer) clearInterval(session.timer);
+      session = null;
+      studySession.classList.add("hidden");
+      document.getElementById("summary-text").textContent =
+        `Session complete. You reviewed ${reviewed} card${reviewed === 1 ? "" : "s"}.`;
+      studySummary.classList.remove("hidden");
+    }
+
+    document.getElementById("end-session").addEventListener("click", finishSession);
+
+    document.getElementById("summary-again").addEventListener("click", async () => {
+      await loadDecks();
+      openStudy(decksCache.find((item) => item.id === currentDeck.id) || currentDeck);
+    });
+    document.getElementById("summary-back").addEventListener("click", async () => {
+      await loadDecks();
+      show("decks");
+    });
+    document.getElementById("study-back").addEventListener("click", async () => {
+      if (session && session.timer) clearInterval(session.timer);
+      session = null;
+      await loadDecks();
+      show("decks");
+    });
+
+    // --- Boot ----------------------------------------------------------------
+    loadDecks()
+      .then(() => show("decks"))
+      .catch((error) => {
+        document.body.innerHTML =
+          `<pre class="error" style="padding:20px">${error.message}</pre>`;
+      });
+  </script>
+</body>
+</html>
