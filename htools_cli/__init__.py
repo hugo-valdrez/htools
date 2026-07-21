@@ -5,6 +5,7 @@ TOOLS = {
     "weekly-meals": ("weekly_meals.planner", "main"),
     "file-converter": ("file_converter.file_converter", "main"),
     "data-visualizer": ("data_visualizer.main", "main"),
+    "anki": ("anki.main", "main"),
 }
 
 

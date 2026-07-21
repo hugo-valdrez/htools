@@ -10,6 +10,7 @@ packages = [
   { include = "weekly_meals" },
   { include = "file_converter" },
   { include = "data_visualizer" },
+  { include = "anki" },
 ]
 
 [tool.poetry.scripts]
