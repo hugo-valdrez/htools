@@ -96,6 +96,24 @@ def delete_card(deck_id: str, card_id: str) -> None:
         _save(data)
 
 
+def update_card(
+    deck_id: str, card_id: str, front: str, back: str, hint: str
+) -> dict | None:
+    with _LOCK:
+        data = _load()
+        deck = _find_deck(data, deck_id)
+        if deck is None:
+            return None
+        card = next((c for c in deck["cards"] if c["id"] == card_id), None)
+        if card is None:
+            return None
+        card["front"] = front
+        card["back"] = back
+        card["hint"] = hint
+        _save(data)
+        return card
+
+
 def study(deck_id: str, include_all: bool = False) -> list[dict]:
     with _LOCK:
         data = _load()

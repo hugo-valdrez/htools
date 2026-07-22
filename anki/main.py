@@ -135,6 +135,35 @@ class AnkiHandler(BaseHTTPRequestHandler):
 
         self.send_error(404)
 
+    def do_PUT(self) -> None:
+        parsed = urlparse(self.path)
+        body = self._read_json()
+        if body is None:
+            self._send_json({"error": "invalid JSON body"}, status=400)
+            return
+
+        if parsed.path == "/api/cards":
+            front = str(body.get("front", "")).strip()
+            back = str(body.get("back", "")).strip()
+            hint = str(body.get("hint", "")).strip()
+            if not front or not back:
+                self._send_json({"error": "front and back are required"}, status=400)
+                return
+            card = store.update_card(
+                str(body.get("deck_id", "")),
+                str(body.get("card_id", "")),
+                front,
+                back,
+                hint,
+            )
+            if card is None:
+                self._send_json({"error": "card not found"}, status=404)
+                return
+            self._send_json(card)
+            return
+
+        self.send_error(404)
+
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
