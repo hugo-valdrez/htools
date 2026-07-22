@@ -15,6 +15,8 @@ Notes:
 - it opens a local browser page by default; use `--no-browser` for the URL only
 - decks and cards are stored in `anki/data/cards.json` (created on first use)
 - each card has a front, a back, and an optional hint (revealed on request)
+- search cards within a deck (typo-tolerant, filters as you type)
+- edit a card's front/back/hint in place; its review schedule is preserved
 - study sessions run by time, by number of cards, or free (until the queue is empty)
 - grading is two-button: **Again** (resets, shows it again soon) or **Good** (schedules it further out)
 - the server is stateless and single-user; it only serves `127.0.0.1`

@@ -51,6 +51,10 @@
       <input id="card-back" placeholder="Back">
       <input id="card-hint" placeholder="Hint (optional)">
       <button id="add-card">Add card</button>
+      <button class="link hidden" id="cancel-edit">Cancel</button>
+    </div>
+    <div class="form">
+      <input id="card-search" placeholder="Search cards…" style="flex:1">
     </div>
     <ul id="card-list"></ul>
     <p id="cards-empty" class="muted hidden">No cards yet. Add one above.</p>
@@ -113,8 +117,10 @@
       study: document.getElementById("view-study"),
     };
     let decksCache = [];
+    let cardsCache = [];
     let currentDeck = null;
     let session = null;
+    let editingCardId = null;
 
     function show(view) {
       for (const key in views) {
@@ -195,53 +201,137 @@
     const frontInput = document.getElementById("card-front");
     const backInput = document.getElementById("card-back");
     const hintInput = document.getElementById("card-hint");
+    const cardSearchInput = document.getElementById("card-search");
+    const cancelEditBtn = document.getElementById("cancel-edit");
+    const addCardBtn = document.getElementById("add-card");
 
     async function openCards(deck) {
       currentDeck = deck;
       cardsTitle.textContent = `${deck.name} — Cards`;
+      cardSearchInput.value = "";
+      resetCardForm();
       show("cards");
       await loadCards();
     }
 
     async function loadCards() {
-      const cards = await api("GET", `/api/cards?deck=${currentDeck.id}`);
+      cardsCache = await api("GET", `/api/cards?deck=${currentDeck.id}`);
+      renderCards();
+    }
+
+    function renderCards() {
+      const query = cardSearchInput.value.trim();
+      const cards = query
+        ? cardsCache.filter((card) => cardMatches(query, card))
+        : cardsCache;
       cardList.innerHTML = cards.map((card) => `
         <li class="row">
           <span>${escapeHtml(card.front)}
             <span class="muted">&rarr; ${escapeHtml(card.back)}</span>
             ${card.hint ? '<span class="muted">(hint)</span>' : ""}</span>
-          <button data-id="${card.id}">Delete</button>
+          <span>
+            <button data-action="edit" data-id="${card.id}">Edit</button>
+            <button data-action="delete" data-id="${card.id}">Delete</button>
+          </span>
         </li>`).join("");
+      cardsEmpty.textContent = query
+        ? "No cards match your search."
+        : "No cards yet. Add one above.";
       cardsEmpty.classList.toggle("hidden", cards.length > 0);
+    }
+    cardSearchInput.addEventListener("input", renderCards);
+
+    // Typo-tolerant match: exact substring, else within an edit-distance
+    // tolerance (scaled to query length) of any single word in the text.
+    function levenshtein(a, b) {
+      let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+      for (let i = 1; i <= a.length; i++) {
+        const curr = [i];
+        for (let j = 1; j <= b.length; j++) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+        }
+        prev = curr;
+      }
+      return prev[b.length];
+    }
+
+    function fuzzyMatch(query, text) {
+      text = text.toLowerCase();
+      if (text.includes(query)) return true;
+      const tolerance = 1 + Math.floor(query.length / 5);
+      return text.split(/\s+/).some((word) => levenshtein(query, word) <= tolerance);
+    }
+
+    function cardMatches(query, card) {
+      query = query.toLowerCase();
+      return (
+        fuzzyMatch(query, card.front) ||
+        fuzzyMatch(query, card.back) ||
+        (card.hint && fuzzyMatch(query, card.hint))
+      );
     }
 
     cardList.addEventListener("click", async (event) => {
-      const button = event.target.closest("button[data-id]");
+      const button = event.target.closest("button[data-action]");
       if (!button) return;
-      await api("DELETE", `/api/cards?deck=${currentDeck.id}&id=${button.dataset.id}`);
-      await loadCards();
+      if (button.dataset.action === "delete") {
+        await api("DELETE", `/api/cards?deck=${currentDeck.id}&id=${button.dataset.id}`);
+        await loadCards();
+      } else if (button.dataset.action === "edit") {
+        startEdit(cardsCache.find((card) => card.id === button.dataset.id));
+      }
     });
 
-    async function addCard() {
-      const front = frontInput.value.trim();
-      const back = backInput.value.trim();
-      if (!front || !back) return;
-      await api("POST", "/api/cards", {
-        deck_id: currentDeck.id,
-        front,
-        back,
-        hint: hintInput.value.trim(),
-      });
+    function startEdit(card) {
+      editingCardId = card.id;
+      frontInput.value = card.front;
+      backInput.value = card.back;
+      hintInput.value = card.hint;
+      addCardBtn.textContent = "Save changes";
+      cancelEditBtn.classList.remove("hidden");
+      frontInput.focus();
+    }
+
+    function resetCardForm() {
+      editingCardId = null;
       frontInput.value = "";
       backInput.value = "";
       hintInput.value = "";
+      addCardBtn.textContent = "Add card";
+      cancelEditBtn.classList.add("hidden");
+    }
+
+    async function saveCard() {
+      const front = frontInput.value.trim();
+      const back = backInput.value.trim();
+      if (!front || !back) return;
+      const hint = hintInput.value.trim();
+      if (editingCardId) {
+        await api("PUT", "/api/cards", {
+          deck_id: currentDeck.id,
+          card_id: editingCardId,
+          front,
+          back,
+          hint,
+        });
+      } else {
+        await api("POST", "/api/cards", {
+          deck_id: currentDeck.id,
+          front,
+          back,
+          hint,
+        });
+      }
+      resetCardForm();
       frontInput.focus();
       await loadCards();
     }
-    document.getElementById("add-card").addEventListener("click", addCard);
+    addCardBtn.addEventListener("click", saveCard);
+    cancelEditBtn.addEventListener("click", resetCardForm);
     for (const input of [frontInput, backInput, hintInput]) {
       input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") addCard();
+        if (e.key === "Enter") saveCard();
       });
     }
 
