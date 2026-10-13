@@ -5,6 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Anki</title>
   <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1b1b1b;
+      --muted: #666;
+      --border: #ccc;
+      --hint: #555;
+      --link: #06c;
+      --error: #a00;
+      --field-bg: #ffffff;
+      --field-border: #999;
+    }
+    :root[data-theme="dark"] {
+      --bg: #1b1b1b;
+      --fg: #e6e6e6;
+      --muted: #9a9a9a;
+      --border: #444;
+      --hint: #b0b0b0;
+      --link: #6cb6ff;
+      --error: #ff6b6b;
+      --field-bg: #2a2a2a;
+      --field-border: #555;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1b1b1b;
+        --fg: #e6e6e6;
+        --muted: #9a9a9a;
+        --border: #444;
+        --hint: #b0b0b0;
+        --link: #6cb6ff;
+        --error: #ff6b6b;
+        --field-bg: #2a2a2a;
+        --field-border: #555;
+      }
+    }
     body {
       margin: 0 auto;
       max-width: 640px;
@@ -12,27 +47,44 @@
       font-family: system-ui, -apple-system, Arial, sans-serif;
       font-size: 15px;
       line-height: 1.5;
-      color: #1b1b1b;
+      color: var(--fg);
+      background: var(--bg);
     }
     h1 { font-size: 20px; margin: 0 0 16px; }
     h2 { font-size: 17px; margin: 12px 0; }
     button { font: inherit; padding: 6px 12px; margin: 2px 0; cursor: pointer; }
-    input, select { font: inherit; padding: 5px 6px; }
+    input, select {
+      font: inherit; padding: 5px 6px;
+      color: var(--fg); background: var(--field-bg);
+      border: 1px solid var(--field-border);
+    }
     ul { list-style: none; padding: 0; margin: 0; }
-    li { border: 1px solid #ccc; padding: 10px; margin-bottom: 8px; }
+    li { border: 1px solid var(--border); padding: 10px; margin-bottom: 8px; }
     .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .row > span:last-child { flex-shrink: 0; }
-    .muted { color: #666; font-size: 13px; }
+    .muted { color: var(--muted); font-size: 13px; }
     .form { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .hidden { display: none; }
     .card-face { font-size: 20px; margin: 16px 0; }
-    .hint { color: #555; font-style: italic; font-size: 16px; }
-    .link { background: none; border: none; color: #06c; text-decoration: underline; padding: 0; }
-    .error { color: #a00; }
+    .hint { color: var(--hint); font-style: italic; font-size: 16px; }
+    .link { background: none; border: none; color: var(--link); text-decoration: underline; padding: 0; }
+    .error { color: var(--error); }
+    .header { display: flex; justify-content: space-between; align-items: center; }
+    #theme-toggle { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--fg); }
   </style>
+  <script>
+    // Apply the saved theme before first paint to avoid a flash.
+    (function () {
+      const saved = localStorage.getItem("anki-theme");
+      if (saved) document.documentElement.setAttribute("data-theme", saved);
+    })();
+  </script>
 </head>
 <body>
-  <h1>Anki</h1>
+  <div class="header">
+    <h1>Anki</h1>
+    <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
+  </div>
 
   <section id="view-decks" class="view">
     <div class="form">
@@ -529,6 +581,24 @@
       await loadDecks();
       show("decks");
     });
+
+    // --- Theme ---------------------------------------------------------------
+    const themeToggle = document.getElementById("theme-toggle");
+    function currentTheme() {
+      const attr = document.documentElement.getAttribute("data-theme");
+      if (attr) return attr;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    function renderThemeToggle() {
+      themeToggle.textContent = currentTheme() === "dark" ? "☀️ Light" : "🌙 Dark";
+    }
+    themeToggle.addEventListener("click", () => {
+      const next = currentTheme() === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("anki-theme", next);
+      renderThemeToggle();
+    });
+    renderThemeToggle();
 
     // --- Boot ----------------------------------------------------------------
     loadDecks()
