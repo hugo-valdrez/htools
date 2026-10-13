@@ -6,6 +6,7 @@ TOOLS = {
     "file-converter": ("file_converter.file_converter", "main"),
     "data-visualizer": ("data_visualizer.main", "main"),
     "anki": ("anki.main", "main"),
+    "footwork": ("footwork.main", "main"),
 }
 
 

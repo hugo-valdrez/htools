@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Footwork</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1b1b1b;
+      --muted: #666;
+      --border: #ccc;
+      --field-bg: #ffffff;
+      --field-border: #999;
+    }
+    :root[data-theme="dark"] {
+      --bg: #1b1b1b;
+      --fg: #e6e6e6;
+      --muted: #9a9a9a;
+      --border: #444;
+      --field-bg: #2a2a2a;
+      --field-border: #555;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1b1b1b;
+        --fg: #e6e6e6;
+        --muted: #9a9a9a;
+        --border: #444;
+        --field-bg: #2a2a2a;
+        --field-border: #555;
+      }
+    }
+    body {
+      margin: 0 auto;
+      max-width: 640px;
+      padding: 24px 16px;
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--fg);
+      background: var(--bg);
+    }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    button { font: inherit; padding: 6px 12px; margin: 2px 0; cursor: pointer; }
+    input, select { font: inherit; padding: 5px 6px;
+      color: var(--fg); background: var(--field-bg); border: 1px solid var(--field-border); }
+    input { width: 80px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .form { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .hidden { display: none; }
+    .header { display: flex; justify-content: space-between; align-items: center; }
+    #theme-toggle { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--fg); }
+    #call {
+      margin: 32px 0 8px;
+      min-height: 1.2em;
+      font-size: 64px;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    #progress { text-align: center; }
+  </style>
+  <script>
+    (function () {
+      const saved = localStorage.getItem("footwork-theme");
+      if (saved) document.documentElement.setAttribute("data-theme", saved);
+    })();
+  </script>
+</head>
+<body>
+  <div class="header">
+    <h1>Footwork</h1>
+    <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
+  </div>
+
+  <div class="form">
+    <label>Mode:
+      <select id="mode">
+        <option value="calls">Calls</option>
+        <option value="lunge">Steps + lunge</option>
+      </select>
+    </label>
+    <label>Voice: <select id="voice"></select></label>
+  </div>
+
+  <div id="calls-form" class="form">
+    <label>Calls: <input id="calls" type="number" min="1" value="20"></label>
+    <label>Seconds between: <input id="calls-interval" type="number" min="0.3" step="0.1" value="2"></label>
+  </div>
+  <p id="calls-note" class="muted">Calls "forward" or "backward" at random.</p>
+
+  <div id="lunge-form" class="form hidden">
+    <label>Steps per rep: <input id="lunge-min" type="number" min="1" value="2"> to
+      <input id="lunge-max" type="number" min="1" value="5"></label>
+    <label>Seconds between: <input id="lunge-interval" type="number" min="0.3" step="0.1" value="2"></label>
+    <label>Reps: <input id="lunge-reps" type="number" min="1" value="10"></label>
+    <label>Rest after lunge (s): <input id="lunge-rest" type="number" min="0" step="0.5" value="3"></label>
+  </div>
+  <p id="lunge-note" class="muted hidden">Each rep is a random number of forward/backward steps (within the range) followed by a beep: lunge on the beep. Set both ends equal for a fixed count.</p>
+
+  <div class="form">
+    <button id="start">Start</button>
+    <button id="stop" disabled>Stop</button>
+  </div>
+  <p class="muted">Starts after a short countdown; Space toggles start/stop.
+    For a smoother voice, install an "Enhanced" or "Premium" English voice in
+    System Settings &rarr; Accessibility &rarr; Spoken Content &rarr; System Voice; it will appear in the list.</p>
+
+  <div id="call"></div>
+  <p id="progress" class="muted"></p>
+
+  <script>
+    const CALLS = ["forward", "backward"];
+    const LEAD_IN_MS = 3000;
+    const BEEP_MS = 250;
+    const PREFERRED_VOICES = ["Samantha", "Daniel", "Karen", "Moira", "Google US English"];
+
+    const modeSelect = document.getElementById("mode");
+    const voiceSelect = document.getElementById("voice");
+    const startBtn = document.getElementById("start");
+    const stopBtn = document.getElementById("stop");
+    const callEl = document.getElementById("call");
+    const progressEl = document.getElementById("progress");
+    const num = (id) => parseFloat(document.getElementById(id).value);
+
+    let timer = null;
+    let audio = null;
+
+    function englishVoices() {
+      return speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"));
+    }
+
+    function voiceRank(v) {
+      const premium = /enhanced|premium|natural|neural/i.test(v.name) ? -100 : 0;
+      const i = PREFERRED_VOICES.indexOf(v.name);
+      return premium + (i === -1 ? PREFERRED_VOICES.length : i);
+    }
+
+    function loadVoices() {
+      const voices = englishVoices().sort((a, b) => voiceRank(a) - voiceRank(b));
+      if (!voices.length) return;
+      const saved = localStorage.getItem("footwork-voice");
+      voiceSelect.innerHTML = "";
+      for (const v of voices) {
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        voiceSelect.appendChild(opt);
+      }
+      voiceSelect.value = voices.some((v) => v.name === saved) ? saved : voices[0].name;
+    }
+    speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    loadVoices();
+    voiceSelect.addEventListener("change", () => {
+      localStorage.setItem("footwork-voice", voiceSelect.value);
+      say(voiceSelect.value);
+    });
+
+    function say(text) {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const voice = englishVoices().find((v) => v.name === voiceSelect.value);
+      if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = "en-US"; }
+      speechSynthesis.speak(u);
+    }
+
+    function beep() {
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.5, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + BEEP_MS / 1000);
+      osc.connect(gain).connect(audio.destination);
+      osc.start();
+      osc.stop(audio.currentTime + BEEP_MS / 1000);
+    }
+
+    function randomCall() {
+      return CALLS[Math.floor(Math.random() * CALLS.length)];
+    }
+
+    // An event is {text, beep, delay, progress}: show text, speak it or beep,
+    // then wait `delay` ms before the next event.
+    function callsSchedule() {
+      const total = Math.max(1, Math.round(num("calls")) || 1);
+      const delay = Math.max(300, (num("calls-interval") || 2) * 1000);
+      const events = [];
+      for (let i = 1; i <= total; i++) {
+        events.push({ text: randomCall(), delay, progress: `${i} / ${total}` });
+      }
+      return events;
+    }
+
+    function lungeSchedule() {
+      const minSteps = Math.max(1, Math.round(num("lunge-min")) || 1);
+      const maxSteps = Math.max(minSteps, Math.round(num("lunge-max")) || minSteps);
+      const reps = Math.max(1, Math.round(num("lunge-reps")) || 1);
+      const delay = Math.max(300, (num("lunge-interval") || 2) * 1000);
+      const rest = Math.max(0, num("lunge-rest") || 0) * 1000;
+      const events = [];
+      for (let r = 1; r <= reps; r++) {
+        const progress = `rep ${r} / ${reps}`;
+        const steps = minSteps + Math.floor(Math.random() * (maxSteps - minSteps + 1));
+        for (let i = 0; i < steps; i++) {
+          events.push({ text: randomCall(), delay, progress });
+        }
+        events.push({ text: "lunge", beep: true, delay: delay + rest, progress });
+      }
+      return events;
+    }
+
+    function setRunning(running) {
+      startBtn.disabled = running;
+      stopBtn.disabled = !running;
+      for (const el of document.querySelectorAll("input, #mode")) el.disabled = running;
+    }
+
+    function stop(message) {
+      clearTimeout(timer);
+      timer = null;
+      speechSynthesis.cancel();
+      setRunning(false);
+      if (message !== undefined) {
+        callEl.textContent = message;
+        say(message);
+      }
+    }
+
+    function start() {
+      if (!audio) audio = new AudioContext();
+      const events = modeSelect.value === "lunge" ? lungeSchedule() : callsSchedule();
+      let i = 0;
+
+      setRunning(true);
+      callEl.textContent = "ready";
+      progressEl.textContent = "";
+      say("ready");
+
+      function tick() {
+        if (i >= events.length) {
+          stop("done");
+          return;
+        }
+        const ev = events[i++];
+        callEl.textContent = ev.text;
+        progressEl.textContent = ev.progress;
+        if (ev.beep) beep(); else say(ev.text);
+        timer = setTimeout(tick, ev.delay);
+      }
+
+      timer = setTimeout(tick, LEAD_IN_MS);
+    }
+
+    function renderMode() {
+      const lunge = modeSelect.value === "lunge";
+      for (const id of ["calls-form", "calls-note"]) document.getElementById(id).classList.toggle("hidden", lunge);
+      for (const id of ["lunge-form", "lunge-note"]) document.getElementById(id).classList.toggle("hidden", !lunge);
+    }
+    modeSelect.addEventListener("change", () => {
+      localStorage.setItem("footwork-mode", modeSelect.value);
+      renderMode();
+    });
+    modeSelect.value = localStorage.getItem("footwork-mode") || "calls";
+    renderMode();
+
+    startBtn.addEventListener("click", start);
+    stopBtn.addEventListener("click", () => {
+      stop();
+      callEl.textContent = "stopped";
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.code !== "Space" || e.target.tagName === "INPUT") return;
+      e.preventDefault();
+      if (timer) stopBtn.click(); else start();
+    });
+
+    const themeToggle = document.getElementById("theme-toggle");
+    function currentTheme() {
+      const attr = document.documentElement.getAttribute("data-theme");
+      if (attr) return attr;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    function renderThemeToggle() {
+      themeToggle.textContent = currentTheme() === "dark" ? "☀️ Light" : "🌙 Dark";
+    }
+    themeToggle.addEventListener("click", () => {
+      const next = currentTheme() === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("footwork-theme", next);
+      renderThemeToggle();
+    });
+    renderThemeToggle();
+  </script>
+</body>
+</html>

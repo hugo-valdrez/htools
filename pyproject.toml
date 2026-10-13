@@ -11,6 +11,7 @@ packages = [
   { include = "file_converter" },
   { include = "data_visualizer" },
   { include = "anki" },
+  { include = "footwork" },
 ]
 
 [tool.poetry.scripts]
